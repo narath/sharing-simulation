@@ -14,7 +14,7 @@ class Simulation
 
       (365*2).times do |day|
         @population.tick(day)
-        output << [ day, @population.susceptible, @population.infected.sum, @population.immune, @population.died, @population.severely_ill.sum, @population.icu_beds_available - @population.severely_ill_today, @population.did_not_get_bed, @population.excess_mortality, @population.infected_today, @population.recovered_today, @population.died_today, @population.reaction, @population.infection_rate ]
+        output << [ day, @population.susceptible, @population.infected.sum, @population.immune, @population.died, @population.severely_ill.sum, @population.resource_controller.beds_available(@population),@population.did_not_get_bed, @population.excess_mortality, @population.infected_today, @population.recovered_today, @population.died_today, @population.reaction, @population.infection_rate ]
 
       end
     end
