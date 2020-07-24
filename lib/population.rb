@@ -19,6 +19,7 @@ DEATH_RATE = 0.01 # for those @infected
 # Alternative relax when the number of new infections is decreasing (this might already always be happening)
 
 class Population
+  attr_accessor :output
   attr_accessor :name, :size, :r0, :rt, :reaction_time_to_distance, :reaction_time_to_reopen, :relax_when_new_daily_infections_is_less_than
   attr_reader :resource_controller
   attr_reader :susceptible, :infected, :severely_ill, :immune, :died
@@ -26,6 +27,7 @@ class Population
   attr_reader :reaction
   attr_reader :infected_today, :recovered_today, :died_today, :severely_ill_today
   attr_reader :expected_mortality, :excess_mortality, :icu_beds_available, :did_not_get_bed
+  attr_reader :start_at
 
   def initialize(name, resource_controller, size: POPULATION, r0: R0, rt: Rt, reaction_time_to_distance: 2, reaction_time_to_reopen: 2, relax_when_new_daily_infections_is_less_than: nil, start_at: 0)
     @name = name
@@ -72,7 +74,7 @@ class Population
       @reaction = "relaxed"
     end
 
-    if day == @start_atm
+    if day == @start_at
       @infected_today = 10
     else
       @infected_today = (@infection_rate * @infected.sum).round

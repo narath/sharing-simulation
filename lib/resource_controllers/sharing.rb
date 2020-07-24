@@ -2,7 +2,8 @@ require_relative File.join("../", "resource_controller")
 
 class ResourceControllerSharing < ResourceController
 
-  def initialize
+  def initialize(name = self.class.name)
+    @name = name
     @beds = 0
     @max_beds = 0
   end

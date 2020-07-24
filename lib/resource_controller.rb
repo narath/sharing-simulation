@@ -3,8 +3,10 @@ HOSPITAL_BEDS_PER_CAPITA = 2.77/1000
 ICU_BEDS_PER_CAPITA = 29.4/100000
 
 class ResourceController
+  attr_accessor :name
 
-  def initialize
+  def initialize(name = self.class.name)
+    @name = name
     @beds = {}
   end
 
