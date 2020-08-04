@@ -75,12 +75,16 @@ class ResourceControllerSharingWithLimits < ResourceController
     result
   end
 
-  # when returning beds, we return them locally to used_locally
-  # then we return them equally to the rest to the max - used locally
+  # when returning beds, we expect an array that is the name of each location to return a bed to
   def return_beds(population, beds)
-    @beds = @beds + beds
-    raise "Too many beds returned" if @beds>@max_beds
-    beds
+    beds.each do |from_location|
+      @beds[from_location][:available] += 1
+      if from_location==population.name
+        @beds[from_location][:used_locally] += 1
+      end
+      raise "Too many beds returned" if @beds[from_location][:available]>@beds[from_location][:max]
+    end
+    beds.count
   end
 
   def beds_available_for_sharing(name)

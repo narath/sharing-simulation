@@ -102,14 +102,14 @@ describe ResourceControllerSharingWithLimits do
 
     taken1 = rc.take_beds(p1,b1)
     taken2 = rc.take_beds(p1,2)
-    assert_equal b1-1, beds_available_locally(p2)
-    assert_equal b1-1, beds_available_locally(p3)
-    assert_equal 0, beds_available_locally(p1)
+    assert_equal b1-1, rc.beds_available_locally(p2)
+    assert_equal b1-1, rc.beds_available_locally(p3)
+    assert_equal 0, rc.beds_available_locally(p1)
 
-    return_beds(p1, taken2)
-    assert_equal b1, beds_available_locally(p2)
-    assert_equal b1, beds_available_locally(p3)
-    assert_equal 0, beds_available_locally(p1)
+    rc.return_beds(p1, taken2)
+    assert_equal b1, rc.beds_available_locally(p2)
+    assert_equal b1, rc.beds_available_locally(p3)
+    assert_equal 0, rc.beds_available_locally(p1)
   end
 
 end

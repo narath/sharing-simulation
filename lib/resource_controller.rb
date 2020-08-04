@@ -18,16 +18,19 @@ class ResourceController
     @beds[population.name]
   end
 
+  # returns an array with the location of the bed that has been taken
   def take_beds(population, beds)
     @beds[population.name] = @beds[population.name] - beds
     raise "Too many beds taken" if @beds[population.name]<0
-    beds
+    (1..beds).collect {|c| population.name}
   end
 
+  # accepts an array with a location for each bed taken
   def return_beds(population, beds)
-    @beds[population.name] = @beds[population.name] + beds
+    @beds[population.name] = @beds[population.name] + beds.count
     raise "Too many beds returned" if @beds[population.name]>default_beds_per_population(population)
-    beds
+    raise "Beds from another location returned" if beds.uniq != [ population.name ]
+    beds.count
   end
 
   def default_beds_per_population(population)

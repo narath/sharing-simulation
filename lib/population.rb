@@ -28,6 +28,7 @@ class Population
   attr_reader :infected_today, :recovered_today, :died_today, :severely_ill_today
   attr_reader :expected_mortality, :excess_mortality, :icu_beds_available, :did_not_get_bed
   attr_reader :start_at
+  attr_reader :beds_used
 
   def initialize(name, resource_controller, size: POPULATION, r0: R0, rt: Rt, reaction_time_to_distance: 2, reaction_time_to_reopen: 2, relax_when_new_daily_infections_is_less_than: nil, start_at: 0)
     @name = name
@@ -39,6 +40,7 @@ class Population
     @reaction_time_to_reopen = reaction_time_to_reopen
     @relax_when_new_daily_infections_is_less_than = relax_when_new_daily_infections_is_less_than|| (100.0/100000 * @size).round
     @start_at = start_at
+    @beds_used = []
 
     @susceptible = @size
     @infected = Array.new(DURATION) { 0 }
@@ -58,7 +60,9 @@ class Population
     return if day<@start_at
     
     severely_ill_recovered_or_died_today = @severely_ill.pop
-    @resource_controller.return_beds(self, severely_ill_recovered_or_died_today)
+    if severely_ill_recovered_or_died_today>0
+      @resource_controller.return_beds(self, @beds_used.pop(severely_ill_recovered_or_died_today))
+    end
     recovered_or_died = @infected.pop + severely_ill_recovered_or_died_today
     @recovered_today = (recovered_or_died * (1-DEATH_RATE)).round
     @died_today = (recovered_or_died - @recovered_today)
@@ -95,13 +99,22 @@ class Population
     @susceptible = @susceptible - @infected_today
 
     @severely_ill_today = (@infected_today * SEVERELY_ILL).floor
-    # if there are no icu beds available, then all those today who are severely ill and do not get an icu bed will die
-    if (@severely_ill_today<@resource_controller.beds_available(self))
-      got_bed = @resource_controller.take_beds(self, @severely_ill_today)
-      @did_not_get_bed = 0
-    else
-      got_bed = @resource_controller.beds_available(self)
-      @did_not_get_bed = (@severely_ill_today - @resource_controller.take_beds(self, got_bed))
+    got_bed = 0
+    @did_not_get_bed = 0
+  
+    if @severely_ill_today>0
+      # if there are no icu beds available, then all those today who are severely ill and do not get an icu bed will die
+      if (@severely_ill_today<@resource_controller.beds_available(self))
+        beds_used_today = @resource_controller.take_beds(self, @severely_ill_today)
+        @beds_used += beds_used_today
+        got_bed = beds_used_today.count
+        @did_not_get_bed = 0
+      else
+        got_bed = @resource_controller.beds_available(self)
+        beds_used_today = @resource_controller.take_beds(self, got_bed)
+        @beds_used += beds_used_today
+        @did_not_get_bed = (@severely_ill_today - got_bed)
+      end
     end
 
     @expected_mortality_today = (recovered_or_died * DEATH_RATE).round

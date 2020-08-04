@@ -20,13 +20,13 @@ class ResourceControllerSharing < ResourceController
   def take_beds(population, beds)
     @beds = @beds - beds
     raise "Too many beds taken" if @beds<0
-    beds
+    (1..beds).collect {|c| "any"}
   end
 
   def return_beds(population, beds)
-    @beds = @beds + beds
+    @beds = @beds + beds.count
     raise "Too many beds returned" if @beds>@max_beds
-    beds
+    beds.count
   end
 end
 
