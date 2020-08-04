@@ -1,4 +1,5 @@
 require 'csv'
+require 'ruby-progressbar'
 
 require_relative File.join("..","lib","population")
 require_relative File.join("..","lib","resource_controller")
@@ -16,9 +17,6 @@ class Scenario
     yield self, @populations if block_given?
   end
 
-  def each_population
-    
-  end
 end
 
 class Simulation
@@ -30,17 +28,19 @@ class Simulation
     # a collection of independent states not sharing
     # start_dates do not matter
     @scenarios << Scenario.new("not sharing", ResourceController.new) do |scenario|
-      scenario.populations << Population.new("s1", scenario.resources)
-      scenario.populations << Population.new("s2", scenario.resources)
+      50.times do |n_state|
+        scenario.populations << Population.new("s#{n_state}", scenario.resources)
+      end
     end
 
     # a collection of 2 states that are sharing
     # we create a series of combinations in which the start date of the pandemic is different
     @scenarios << Scenario.new("sharing") do |scenario|
-      365.times do |n|
+      25.times do |n|
         scenario.populations << Scenario.new("sharing-#{n}", ResourceControllerSharing.new) do |scenario|
-          scenario.populations << Population.new("s1", scenario.resources)
-          scenario.populations << Population.new("s2-#{n}", scenario.resources, start_at: n)
+          5.times do |n_state|
+            scenario.populations << Population.new("s#{n_state}", scenario.resources, start_at: n_state*n)
+          end
         end
       end
     end 
@@ -54,11 +54,14 @@ class Simulation
     #   population.output << headers
     # end
     
-    (365*5).times do |day|
+    days = 365*5
+    progress = ProgressBar.create(total: days)
+    days.times do |day|
       each_population do |scenario_name, population|
         population.tick(day)
         # population.output << [ day, population.susceptible, population.infected.sum, population.immune, population.died, population.severely_ill.sum, population.resource_controller.beds_available(population),population.did_not_get_bed, population.excess_mortality, population.infected_today, population.recovered_today, population.died_today, population.reaction, population.infection_rate ]
       end
+      progress.increment
     end
 
     # each_population do |scenario_name, population|
@@ -94,10 +97,25 @@ class Simulation
     end
 
     with_scenario "sharing" do |s|
-      CSV.open(File.join(@data_dir, "summary-sharing.csv"), "wb") do |csv|
-        csv << [ "offset", "died" ]
+      CSV.open(File.join(@data_dir, "summary-sharing-5states.csv"), "wb") do |csv|
+        header = []
+        has_written_header = false
+
         s.populations.each do |sub|
-          csv << [sub.populations[1].start_at, sub.populations[0].died + sub.populations[1].died]
+          output = []
+          header << "offset"
+          output << sub.populations[1].start_at
+
+          sub.populations.each_with_index do |sub_pop,index|
+            header << index
+            output << sub_pop.died
+          end
+
+          if !has_written_header
+            csv << header
+            has_written_header = true
+          end
+          csv << output
         end
       end
     end
