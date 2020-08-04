@@ -1,25 +1,13 @@
 require 'csv'
 require 'ruby-progressbar'
 
-require_relative File.join("..","lib","population")
-require_relative File.join("..","lib","resource_controller")
-require_relative File.join("..","lib","resource_controllers","sharing")
-require_relative File.join("..","lib","simulation")
+require_relative File.join("..","population")
+require_relative File.join("..","resource_controller")
+require_relative File.join("..","resource_controllers","sharing")
+require_relative File.join("..","scenario")
+require_relative File.join("..","simulation_base")
 
-class Scenario
-  attr_accessor :name
-  attr_reader :resources, :populations
-
-  def initialize(name, resources=nil)
-    @name = name
-    @resources = resources
-    @populations = []
-    yield self, @populations if block_given?
-  end
-
-end
-
-class Simulation
+class Simulation50States < SimulationBase
 
   def initialize(data_dir)
     @data_dir = data_dir
@@ -38,7 +26,7 @@ class Simulation
     @scenarios << Scenario.new("sharing") do |scenario|
       25.times do |n|
         scenario.populations << Scenario.new("sharing-#{n}", ResourceControllerSharing.new) do |scenario|
-          5.times do |n_state|
+          50.times do |n_state|
             scenario.populations << Population.new("s#{n_state}", scenario.resources, start_at: n_state*n)
           end
         end
@@ -97,7 +85,7 @@ class Simulation
     end
 
     with_scenario "sharing" do |s|
-      CSV.open(File.join(@data_dir, "summary-sharing-5states.csv"), "wb") do |csv|
+      CSV.open(File.join(@data_dir, "summary-sharing-50states.csv"), "wb") do |csv|
         header = []
         has_written_header = false
 
@@ -120,38 +108,6 @@ class Simulation
       end
     end
   end
-
-  def filename_for(scenario, population)
-    File.join(@data_dir, "#{scenario}-#{population.name}.csv")
-  end
-
-  def each_population
-    @scenarios.each do |scenario|
-      scenario.populations.each do |population|
-        if population.is_a?(Population)
-          yield scenario.name, population
-        elsif population.is_a?(Scenario)
-          name = "#{scenario.name}-#{population.name}"
-          population.populations.each do |p2|
-            yield name, p2
-          end
-        end
-      end
-    end
-  end
-
-  def with_scenario(name)
-   s = @scenarios.find {|s| s.name == name}
-   if block_given?
-    yield s
-   else
-     s
-   end
-  end
-
 end
 
-sim = Simulation.new("data")
-sim.run
-puts "Done!"
 

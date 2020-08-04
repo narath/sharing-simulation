@@ -1,6 +1,6 @@
 require 'csv'
 
-class Simulation
+class SimulationSimple
 
   def initialize(population, filename)
     @population = population
