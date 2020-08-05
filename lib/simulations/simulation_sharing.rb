@@ -7,16 +7,18 @@ require_relative File.join("..","resource_controllers","sharing")
 require_relative File.join("..","scenario")
 require_relative File.join("..","simulation_base")
 
-class Simulation50States < SimulationBase
+class SimulationSharing < SimulationBase
 
-  def initialize(data_dir)
+  def initialize(data_dir, states: 2, offset_days_up_to: 10)
     @data_dir = data_dir
+    @states = states
+    @offset_days_up_to = offset_days_up_to
     @scenarios = []
 
     # a collection of independent states not sharing
     # start_dates do not matter
     @scenarios << Scenario.new("not sharing", ResourceController.new) do |scenario|
-      50.times do |n_state|
+      @states.times do |n_state|
         scenario.populations << Population.new("s#{n_state}", scenario.resources)
       end
     end
@@ -24,9 +26,9 @@ class Simulation50States < SimulationBase
     # a collection of 2 states that are sharing
     # we create a series of combinations in which the start date of the pandemic is different
     @scenarios << Scenario.new("sharing") do |scenario|
-      25.times do |n|
+      @offset_days_up_to.times do |n|
         scenario.populations << Scenario.new("sharing-#{n}", ResourceControllerSharing.new) do |scenario|
-          50.times do |n_state|
+          @states.times do |n_state|
             scenario.populations << Population.new("s#{n_state}", scenario.resources, start_at: n_state*n)
           end
         end
@@ -76,7 +78,7 @@ class Simulation50States < SimulationBase
     # now summarize the difference between the populations
     # export the not sharing scenario
     with_scenario "not sharing" do |s|
-      CSV.open(File.join(@data_dir, "summary-not_sharing.csv"), "wb") do |csv|
+      CSV.open(File.join(@data_dir, "summary-#{@states}states-not_sharing.csv"), "wb") do |csv|
         csv << ["State", "Died"]
         s.populations.each do |p|
           csv << [p.name, p.died]
@@ -85,7 +87,7 @@ class Simulation50States < SimulationBase
     end
 
     with_scenario "sharing" do |s|
-      CSV.open(File.join(@data_dir, "summary-sharing-50states.csv"), "wb") do |csv|
+      CSV.open(File.join(@data_dir, "summary-#{@states}states-sharing.csv"), "wb") do |csv|
         header = []
         has_written_header = false
 
@@ -95,7 +97,7 @@ class Simulation50States < SimulationBase
           output << sub.populations[1].start_at
 
           sub.populations.each_with_index do |sub_pop,index|
-            header << index
+            header << sub_pop.name
             output << sub_pop.died
           end
 
