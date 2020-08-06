@@ -9,10 +9,11 @@ require_relative File.join("..","simulation_base")
 
 class SimulationSharing < SimulationBase
 
-  def initialize(data_dir, states: 2, offset_days_up_to: 10)
+  def initialize(data_dir, states: 2, offset_days_up_to: 10, save_details: false)
     @data_dir = data_dir
     @states = states
     @offset_days_up_to = offset_days_up_to
+    @save_details = save_details
     @scenarios = []
 
     # a collection of independent states not sharing
@@ -37,43 +38,36 @@ class SimulationSharing < SimulationBase
   end
 
   def run
-    # headers = ["day", "susceptible", "infected", "immune", "died", "severely_ill", "icu_beds_available", "died_because_of_no_bed", "excess_mortality", "infected_today", "recovered_today", "died_today", "reaction", "infection_rate"]
+    if @save_details
+      headers = ["day", "susceptible", "infected", "immune", "died", "severely_ill", "icu_beds_available", "died_because_of_no_bed", "excess_mortality", "infected_today", "recovered_today", "died_today", "reaction", "infection_rate"]
 
-    # each_population do |scenario_name, population|
-    #   population.output = CSV.open(filename_for(scenario_name, population), "wb")
-    #   population.output << headers
-    # end
+      each_population do |scenario_name, population|
+        population.output = []
+        population.output << headers
+      end
+    end
     
     days = 365*5
     progress = ProgressBar.create(total: days)
     days.times do |day|
       each_population do |scenario_name, population|
         population.tick(day)
-        # population.output << [ day, population.susceptible, population.infected.sum, population.immune, population.died, population.severely_ill.sum, population.resource_controller.beds_available(population),population.did_not_get_bed, population.excess_mortality, population.infected_today, population.recovered_today, population.died_today, population.reaction, population.infection_rate ]
+        if @save_details
+          population.output << [ day, population.susceptible, population.infected.sum, population.immune, population.died, population.severely_ill.sum, population.resource_controller.beds_available(population),population.did_not_get_bed, population.excess_mortality, population.infected_today, population.recovered_today, population.died_today, population.reaction, population.infection_rate ]
+        end
       end
       progress.increment
     end
 
-    # each_population do |scenario_name, population|
-    #   population.output.close()
-    #   population.output = nil
-    # end
-
-    # @scenarios.each do |scenario|
-    #   puts "scenario #{scenario.name}"
-    #   data = []
-    #   scenario.populations.each do |p|
-    #     if p.is_a?(Population)
-    #       data << [p.start_at, p.resource_controller.name, p.died]
-    #     elsif p.is_a?(Scenario)
-    #       puts " -- #{p.name}"
-    #       p.populations.each do |p2|
-    #           data << [p2.start_at, p2.resource_controller.name, p2.died]
-    #       end
-    #     end
-    #   end
-    #   puts data.inspect
-    # end
+    if @save_details
+      each_population do |scenario_name, population|
+        CSV.open(filename_for(scenario_name, population), "wb") do |csv|
+          population.output.each do |line|
+            csv << line
+          end
+        end
+      end
+    end
 
     # now summarize the difference between the populations
     # export the not sharing scenario
