@@ -1,0 +1,1 @@
+Code for a stochastic model simulation to understand how not sharing critical resources could affect states. Please see the [report](http://dev.narath.io/sharing-simulation/) on the results of the model.
